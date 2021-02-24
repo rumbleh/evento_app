@@ -90,19 +90,23 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void _cadastraUsuario(GlobalKey<ScaffoldState> globalKey) async {
     User user = User(_nome.text, _email.text, _convertToSha1(_senha.text));
-    if (formKey.currentState.validate()){
-      ApiResponse response = await UserController().adicionarParticipante(user, formKey);
-      if (response != null){
-        globalKey.currentState.showSnackBar(SnackBar(content: Text(response.msg)));
+    if (formKey.currentState.validate()) {
+      ApiResponse response =
+          await UserController().adicionarParticipante(user, formKey);
+      if (response != null) {
+        globalKey.currentState
+            .showSnackBar(SnackBar(content: Text(response.msg)));
       } else {
-        globalKey.currentState.showSnackBar(SnackBar(content: Text("Não foi possível cadastrar o usuário.")));
+        globalKey.currentState.showSnackBar(
+            SnackBar(content: Text("Não foi possível cadastrar o usuário.")));
       }
     } else {
-      globalKey.currentState.showSnackBar(SnackBar(content: Text("Preencha todos os campos em branco.")));
+      globalKey.currentState.showSnackBar(
+          SnackBar(content: Text("Preencha todos os campos em branco.")));
     }
   }
 
-  String _convertToSha1(String text){
+  String _convertToSha1(String text) {
     return sha1.convert(utf8.encode("eVeNtApP" + text)).toString();
   }
 }

@@ -1,3 +1,4 @@
+import 'package:evento_app/controller/user_controller.dart';
 import 'package:evento_app/view/event_screen.dart';
 import 'package:flutter/material.dart';
 import 'activity_screen.dart';
@@ -36,6 +37,7 @@ class Menu extends StatelessWidget {
           title: Text("Sair"),
           trailing: Icon(Icons.arrow_forward),
           onTap: () {
+            UserController().logout();
             Navigator.of(context).pop();
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (BuildContext context) => LoginScreen()));
