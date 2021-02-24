@@ -1,3 +1,4 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -15,6 +16,8 @@ class _EventScreenState extends State<EventScreen> {
     "titulo": "Conhecendo Flutter",
     "horario": "08:00"
   };
+
+  DatabaseReference databaseReference;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +80,8 @@ class _EventScreenState extends State<EventScreen> {
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
                       "${atividades[0]["titulo"]}",
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.0),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 16.0),
                     ),
                   ),
                   Padding(
