@@ -90,14 +90,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login(BuildContext context, GlobalKey<ScaffoldState> globalKey) async {
-    User user = User("", _email.text, _convertToSha1(_senha.text));
+    User _usuario = User("", _email.text, _convertToSha1(_senha.text));
     if (formKey.currentState.validate()) {
-      ApiResponse response = await UserController().login(user, formKey);
+      ApiResponse response = await UserController().login(_usuario, formKey);
       if (response != null) {
         globalKey.currentState
             .showSnackBar(SnackBar(content: Text(response.msg)));
+        _usuario.name = response.user.displayName;
+
         Navigator.of(context).push(MaterialPageRoute(
-            builder: (BuildContext context) => EventScreen()));
+            builder: (BuildContext context) => EventScreen(usuario: _usuario)));
       } else {
         globalKey.currentState.showSnackBar(
             SnackBar(content: Text("Não foi possível realizar o login.")));

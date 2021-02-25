@@ -23,6 +23,7 @@ class User {
   }
 
   User.fromJson(Map<String, dynamic> json){
+    print(json);
     name = json['name'];
     email = json['email'];
     password = json['password'];

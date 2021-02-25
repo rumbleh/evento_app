@@ -90,7 +90,7 @@ class _UserControllerState extends State<UserController> {
 
       formKey.currentState.save();
       formKey.currentState.reset();
-      return ApiResponse.ok(msg: "Você realizou o login com sucesso.");
+      return ApiResponse.ok(msg: "Você realizou o login com sucesso.", user: fUser);
     } catch (error) {
       print(error);
       if (error is PlatformException) {
@@ -103,7 +103,7 @@ class _UserControllerState extends State<UserController> {
     return null;
   }
 
-  Future<void> _logout() async {
+  Future<ApiResponse> _logout() async {
     await _auth.signOut();
   }
 }
@@ -111,9 +111,10 @@ class _UserControllerState extends State<UserController> {
 class ApiResponse<T> {
   bool ok;
   String msg;
+  FirebaseUser user;
   T result;
 
-  ApiResponse.ok({this.result, this.msg}) {
+  ApiResponse.ok({this.result, this.msg, this.user}) {
     ok = true;
   }
 

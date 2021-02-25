@@ -1,30 +1,58 @@
+import 'package:evento_app/controller/activity_controller.dart';
+import 'package:evento_app/model/activity.dart';
+import 'package:evento_app/model/user.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'menu.dart';
 
 class EventScreen extends StatefulWidget {
+  final User usuario;
+
+  EventScreen({Key key, @required this.usuario}) : super(key: key);
+
   @override
   _EventScreenState createState() => _EventScreenState();
 }
 
 class _EventScreenState extends State<EventScreen> {
-  List<dynamic> atividades = List();
-  Map<String, String> atividade = {
-    "palestrante": "Thiago",
-    "titulo": "Conhecendo Flutter",
-    "horario": "08:00"
-  };
 
+  List<dynamic> atividades = List();
   DatabaseReference databaseReference;
 
   @override
+  void initState() {
+    super.initState();
+    databaseReference = ActivityController().getAllActivities("activity");
+    databaseReference.onChildAdded.listen(_verificaNovaAtividade);
+    databaseReference.onChildChanged.listen(_verificaAtividadeAtualizada);
+  }
+
+  void _verificaNovaAtividade(Event event) {
+    setState(() {
+      Activity atividade = Activity.fromSnapshot(event.snapshot);
+      atividade.setKey(event.snapshot.key);
+      atividades.add(atividade);
+    });
+  }
+
+  void _verificaAtividadeAtualizada(Event event) {
+    setState(() {
+      Activity atividade = Activity.fromSnapshot(event.snapshot);
+      int index =
+          atividades.indexWhere((element) => element.key == atividade.key);
+      atividades[index] = atividade;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    atividades.add(atividade);
+    User usuario = widget.usuario;
 
     return Scaffold(
-      drawer: Menu(),
+      drawer: Menu(usuario: usuario),
       appBar: AppBar(
         title: Text(
           "Nosso evento",
@@ -56,52 +84,35 @@ class _EventScreenState extends State<EventScreen> {
   }
 
   Widget _listagem(BuildContext context) {
-    return Column(
-      children: [
-        Card(
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CircleAvatar(
-                  backgroundColor: Colors.black26,
-                  radius: 25,
-                  child: Text(
-                    "P",
-                    style: TextStyle(fontSize: 30.0, color: Colors.white),
-                  ),
-                ),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+    return FirebaseAnimatedList(
+        query: databaseReference,
+        itemBuilder:
+            (_, DataSnapshot snapshot, Animation<double> animation, int index) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+              child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: atividades[index].confirmed
+                        ? Colors.deepPurple
+                        : Colors.black26,
+                    radius: 25,
                     child: Text(
-                      "${atividades[0]["titulo"]}",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 16.0),
+                      atividades[index].title.substring(0, 1),
+                      style: TextStyle(fontSize: 30.0, color: Colors.white),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8.0, 2.0, 2.0, 8.0),
-                    child: Text("${atividades[0]["palestrante"]}"),
-                  ),
-                ],
-              ),
-              Spacer(),
-              Padding(
-                padding: const EdgeInsets.all(5),
-                child: Text(
-                  "${atividades[0]["horario"]}",
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.0),
-                ),
-              )
-            ],
-          ),
-        ),
-      ],
-    );
+                  title: Text(atividades[index].title,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 16.0)),
+                  subtitle: Text(atividades[index].speaker +
+                      "\n" +
+                      atividades[index].schedule),
+                  trailing: atividades[index].confirmed
+                      ? Icon(Icons.check)
+                      : Icon(Icons.maximize)),
+            ),
+          );
+        });
   }
 }

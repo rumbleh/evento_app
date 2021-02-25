@@ -1,5 +1,7 @@
 import 'package:evento_app/controller/activity_controller.dart';
 import 'package:evento_app/model/activity.dart';
+import 'package:evento_app/model/user.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,10 @@ import 'package:flutter/material.dart';
 import 'menu.dart';
 
 class ActivityScreen extends StatefulWidget {
+  final User usuario;
+
+  ActivityScreen({Key key, @required this.usuario}) : super(key: key);
+
   @override
   _ActivityScreenState createState() => _ActivityScreenState();
 }
@@ -22,9 +28,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   List<Activity> atividades = List<Activity>();
   DatabaseReference databaseReference;
+  FirebaseAuth _firebaseAuth;
 
   @override
   void initState() {
+    print(_firebaseAuth);
     super.initState();
     databaseReference = ActivityController().getAllActivities("activity");
     databaseReference.onChildAdded.listen(_verificaNovaAtividade);
@@ -50,6 +58,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    User usuario = widget.usuario;
+
     return Scaffold(
       key: globalKey,
       appBar: AppBar(
@@ -68,7 +78,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           )),
           Flexible(
               child: atividades.isNotEmpty
-                  ? _listagem(context)
+                  ? listagem(context)
                   : Center(
                       child: Container(
                         child: Text("Não existem atividades cadastradas"),
@@ -83,7 +93,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           _cadastrarAtividade();
         },
       ),
-      drawer: Menu(),
+      drawer: Menu(usuario: usuario),
     );
   }
 
@@ -109,28 +119,34 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  Widget _listagem(BuildContext context) {
+  Widget listagem(BuildContext context) {
     return FirebaseAnimatedList(
         query: databaseReference,
         itemBuilder:
             (_, DataSnapshot snapshot, Animation<double> animation, int index) {
           return Card(
-            child: ListTile(
-              leading: atividades[index].confirmed
-                  ? Icon(Icons.check)
-                  : Icon(Icons.maximize),
-              title: Text(atividades[index].title),
-              subtitle: Text(
-                  "${atividades[index].speaker}\n${atividades[index].schedule}"),
-              trailing: IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return _alertaDelete(context, atividades[index]);
-                      });
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+              child: ListTile(
+                onLongPress: () {
+                  _editarAtividade(context, atividades[index]);
                 },
+                leading: atividades[index].confirmed
+                    ? Icon(Icons.check)
+                    : Icon(Icons.maximize),
+                title: Text(atividades[index].title),
+                subtitle: Text(
+                    "${atividades[index].speaker}\n${atividades[index].schedule}"),
+                trailing: IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () {
+                    showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return _alertaDelete(context, atividades[index]);
+                        });
+                  },
+                ),
               ),
             ),
           );
@@ -141,7 +157,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     try {
       ActivityController().deleteActivity('activity', key);
       Navigator.of(context).push(MaterialPageRoute(
-          builder: (BuildContext context) => ActivityScreen()));
+          builder: (BuildContext context) => ActivityScreen(usuario: widget.usuario,)));
     } catch (error) {
       print(error);
       globalKey.currentState.showSnackBar(
@@ -149,7 +165,89 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
-  Widget _cadastrarAtividade() {
+  Widget _editarAtividade(BuildContext context, Activity atividade) {
+    _palestra.text = atividade.title;
+    _horario.text = atividade.schedule;
+    _palestrante.text = atividade.speaker;
+    _confirmada = atividade.confirmed;
+    atividade.setKey(atividade.key);
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => Form(
+              key: formKey,
+              child: SimpleDialog(
+                title: Text("Atividade"),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0),
+                    child: TextFormField(
+                      validator: (val) => val == "" ? val : null,
+                      controller: _palestra,
+                      decoration: InputDecoration(
+                        hintText: "Título da palestra",
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0),
+                    child: TextFormField(
+                      validator: (val) => val == "" ? val : null,
+                      controller: _palestrante,
+                      decoration: InputDecoration(
+                        hintText: "Palestrante",
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0),
+                    child: TextFormField(
+                      validator: (val) => val == "" ? val : null,
+                      controller: _horario,
+                      decoration: InputDecoration(
+                        hintText: "Horário",
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0),
+                    child: FormField<bool>(
+                        key: formState,
+                        initialValue: _confirmada,
+                        builder: (FormFieldState<bool> state) {
+                          return CheckboxListTile(
+                              value: state.value,
+                              title: Text("Confirmada?"),
+                              selected: _confirmada,
+                              onChanged: state.didChange);
+                        }),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      FlatButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("Cancelar")),
+                      FlatButton(
+                          onPressed: () {
+                            _confirmada = formState.currentState.value;
+                            _atualizarAtividade(
+                                globalKey, context, _confirmada, atividade.key);
+                          },
+                          child: Text(
+                            "OK",
+                            style: TextStyle(color: Colors.deepPurple),
+                          )),
+                    ],
+                  )
+                ],
+              ),
+            ));
+  }
+
+  void _cadastrarAtividade() {
     showDialog(
         context: context,
         builder: (BuildContext context) => Form(
@@ -224,6 +322,28 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ));
   }
 
+  void _atualizarAtividade(GlobalKey<ScaffoldState> globalKey,
+      BuildContext context, bool confirmada, String key) {
+    try {
+      if (formKey.currentState.validate()) {
+        Activity activity = Activity(
+            _palestra.text, _palestrante.text, _horario.text, _confirmada, key);
+        ActivityController().updateActivity("activity", activity);
+        globalKey.currentState.showSnackBar(
+            SnackBar(content: Text("Atividade atualizada com sucesso")));
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (BuildContext context) => ActivityScreen(usuario: widget.usuario,)));
+      } else {
+        globalKey.currentState
+            .showSnackBar(SnackBar(content: Text("Preencha todos os campos")));
+      }
+    } catch (error) {
+      print(error);
+      globalKey.currentState.showSnackBar(
+          SnackBar(content: Text("Não foi possível atualizar a atividade.")));
+    }
+  }
+
   void _cadastraAtividade(GlobalKey<ScaffoldState> globalKey,
       BuildContext context, bool confirmada) {
     try {
@@ -234,7 +354,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         globalKey.currentState.showSnackBar(
             SnackBar(content: Text("Atividade cadastrada com sucesso")));
         Navigator.of(context).push(MaterialPageRoute(
-            builder: (BuildContext context) => ActivityScreen()));
+            builder: (BuildContext context) => ActivityScreen(usuario: widget.usuario)));
       } else {
         globalKey.currentState
             .showSnackBar(SnackBar(content: Text("Preencha todos os campos")));

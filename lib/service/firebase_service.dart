@@ -1,3 +1,4 @@
+import 'package:evento_app/model/activity.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class FirebaseService {
@@ -16,7 +17,8 @@ class FirebaseService {
   }
 
   void updateDataRealTime(String databaseName, dynamic model) {
-    databaseReference = databaseRealTime.reference().child(databaseName);
+    databaseReference =
+        databaseRealTime.reference().child(databaseName).child(model.key);
     databaseReference.update(model.toJson());
   }
 
